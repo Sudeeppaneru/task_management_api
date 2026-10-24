@@ -1,0 +1,26 @@
+from typing import Generator
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
+from src.utils.settings import settings
+
+db_url = settings.DATABASE_URL
+if db_url and db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+engine = create_engine(url=db_url, pool_pre_ping=True)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency to yield a database session and close it after request."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,0 +1,55 @@
+================================================================================
+PROJECT INTERVIEW SUMMARY: TASK MANAGEMENT REST API
+================================================================================
+
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+A production-grade, secure personal Task Management REST API built from scratch.
+It provides robust user authentication, user profile management, task tracking,
+and nested milestone management with strict resource ownership and data integrity rules.
+
+2. TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+- Language & Framework: Python 3.11+, FastAPI (high performance, async-ready, automatic OpenAPI docs)
+- ORM & Database: SQLAlchemy 2.x (typed mappings with Mapped/mapped_column), PostgreSQL
+- Validation & Settings: Pydantic 2.x, pydantic-settings
+- Security & Auth: PyJWT (JSON Web Tokens), bcrypt (secure password hashing)
+- Migrations: Alembic
+- Testing: Pytest, FastAPI TestClient, HTTPX
+
+3. ARCHITECTURE & CODE ORGANIZATION
+--------------------------------------------------------------------------------
+The project follows a clean Modular Monolith architecture adhering to SOLID principles:
+- src/auth/: Authentication routes, JWT generation/validation, password hashing, and user dependencies.
+- src/user/: User profile retrieval and update endpoints.
+- src/tasks/: Task CRUD operations, pagination, soft-deletion cascades, status lifecycle rules, and date validation.
+- src/milestones/: Nested milestone CRUD operations scoped under owned parent tasks.
+- src/utils/: Database engine, session factory (`get_db`), validated environment configuration (`settings`), and security helpers.
+- alembic/: Version-controlled database migrations.
+- tests/: Automated unit and integration test suite.
+
+4. KEY TECHNICAL HIGHLIGHTS & CHALLENGES SOLVED
+--------------------------------------------------------------------------------
+- Security & Tenant Isolation: Every query and mutation for tasks and milestones is strictly
+  scoped to the authenticated user's ID. Unauthorized or non-existent resource requests consistently
+  return 404 Not Found to prevent resource enumeration.
+- Password Security: Plaintext passwords are never stored or returned; securely hashed using bcrypt
+  with proper salt generation.
+- Lifecycle Automation: Transitions to `completed` automatically stamp `completed_on` in UTC,
+  and transitioning away clears it. Task deletion cascades soft-deletion (`deleted_on`) to all active milestones.
+- Database Migrations: Moved away from brittle `create_all()` calls to professional version-controlled
+  Alembic schema migrations.
+- Testability: Implemented comprehensive pytest fixtures with isolated database sessions and TestClient
+  covering validation failures, auth errors, ownership checks, and business rules.
+
+5. INTERVIEW TALKING POINTS & COMMON QUESTIONS
+--------------------------------------------------------------------------------
+- Q: Why did you choose FastAPI over Flask or Django?
+  A: FastAPI offers native support for Pydantic v2 data validation, type hints, automatic interactive
+  OpenAPI / Swagger documentation, and high asynchronous throughput out of the box with minimal boilerplate.
+- Q: How do you prevent users from accessing each other's data?
+  A: We use a FastAPI dependency (`get_current_active_user`) that extracts the JWT token, verifies the user in the database,
+  and injects the user model into the route. All service/controller queries explicitly filter by `user_id == current_user.id`.
+- Q: How are database transactions handled?
+  A: Each request receives a scoped SQLAlchemy session via a FastAPI dependency yielding `SessionLocal`.
+  Transactions are explicitly committed upon successful operations and rolled back on exceptions.
